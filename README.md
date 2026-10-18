@@ -8,7 +8,13 @@
 cargo run
 ```
 
-기본 포트는 `3000`이며 `PORT` 환경 변수로 바꿀 수 있습니다.
+기본 바인딩 주소는 `0.0.0.0:3000`이며 `SERVER_STATUS_HOST`와 `SERVER_STATUS_PORT` 환경 변수로 바꿀 수 있습니다. `SERVER_STATUS_HOST`에는 IP 주소를 지정합니다.
+
+```powershell
+$env:SERVER_STATUS_HOST = "127.0.0.1"
+$env:SERVER_STATUS_PORT = "8080"
+cargo run
+```
 
 ## API
 

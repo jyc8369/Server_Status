@@ -1,7 +1,11 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json, Router};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 use sysinfo::System;
 use tokio::sync::RwLock;
 use tower_http::trace::TraceLayer;
@@ -61,11 +65,13 @@ async fn main() {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let port = std::env::var("PORT")
-        .ok()
-        .and_then(|value| value.parse::<u16>().ok())
-        .unwrap_or(3000);
-    let address = SocketAddr::from(([0, 0, 0, 0], port));
+    let host = std::env::var("SERVER_STATUS_HOST").unwrap_or_else(|_| "0.0.0.0".to_owned());
+    let port = std::env::var("SERVER_STATUS_PORT")
+        .unwrap_or_else(|_| "3000".to_owned())
+        .parse::<u16>()
+        .expect("PORT must be a valid port number (0-65535)");
+    let host: IpAddr = host.parse().expect("HOST must be a valid IP address");
+    let address = SocketAddr::new(host, port);
     let listener = tokio::net::TcpListener::bind(address)
         .await
         .expect("failed to bind HTTP listener");
