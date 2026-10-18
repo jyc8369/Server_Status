@@ -1,0 +1,56 @@
+name: Linux Debian release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-deb:
+    name: Build Linux .deb
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Check release tag matches Cargo version
+        shell: bash
+        run: |
+          package_version="$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json, sys; print(json.load(sys.stdin)["packages"][0]["version"])')"
+          release_version="${GITHUB_REF_NAME#v}"
+          if [[ "$release_version" != "$package_version" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match Cargo version $package_version" >&2
+            exit 1
+          fi
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb --locked
+
+      - name: Build Debian package
+        run: |
+          cargo build --release --locked
+          cargo deb --no-build
+
+      - name: Publish package to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(target/debian/*.deb)
+          if (( ${#packages[@]} == 0 )); then
+            echo "No Debian package was produced" >&2
+            exit 1
+          fi
+
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${packages[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${packages[@]}" --verify-tag --generate-notes
+          fi
