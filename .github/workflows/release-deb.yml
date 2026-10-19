@@ -18,6 +18,8 @@ jobs:
 
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Check release tag matches Cargo version
         shell: bash
@@ -29,13 +31,34 @@ jobs:
             exit 1
           fi
 
+      - name: Validate Rust source
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --locked
+
       - name: Install cargo-deb
-        run: cargo install cargo-deb --locked
+        run: cargo install cargo-deb --version 2.9.2 --locked
 
       - name: Build Debian package
         run: |
           cargo build --release --locked
           cargo deb --no-build
+
+      - name: Verify systemd unit is packaged
+        shell: bash
+        run: |
+          shopt -s nullglob
+          packages=(target/debian/*.deb)
+          if (( ${#packages[@]} != 1 )); then
+            echo "Expected exactly one Debian package" >&2
+            exit 1
+          fi
+          dpkg-deb --contents "${packages[0]}" | grep -F 'server-status.service'
+          dpkg-deb --control "${packages[0]}" control-files
+          test -f control-files/postinst
+          test -f control-files/prerm
+          rm -rf control-files
 
       - name: Publish package to GitHub Release
         env:
