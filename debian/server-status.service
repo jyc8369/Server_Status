@@ -1,0 +1,19 @@
+[Unit]
+Description=Server Status CPU metrics API
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/server-status
+Environment=SERVER_STATUS_HOST=127.0.0.1
+Environment=SERVER_STATUS_PORT=3000
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
