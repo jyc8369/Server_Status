@@ -51,7 +51,10 @@ async fn readiness(State(state): State<AppState>) -> impl IntoResponse {
     };
 
     if ready {
-        (StatusCode::OK, Json(serde_json::json!({ "status": "ready" })))
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "ready" })),
+        )
     } else {
         (
             StatusCode::SERVICE_UNAVAILABLE,
